@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magic WMS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#7C3AED;--pl:#8B5CF6;--pd:#6D28D9;--pbg:#EDE9FE;
+  --sb:#0F0F14;--st:#A0A0B0;--sh:#1A1A24;
+  --bg:#F4F4F8;--white:#fff;--bdr:#E4E4EF;
+  --t1:#111118;--t2:#6B6B80;--tm:#9999AA;
+  --ok:#10B981;--okbg:#D1FAE5;
+  --warn:#F59E0B;--warnbg:#FEF3C7;
+  --err:#EF4444;--errbg:#FEE2E2;
+  --info:#3B82F6;--infobg:#DBEAFE;
+  --r:8px;--rl:12px;
+  --s1:0 1px 3px rgba(0,0,0,.08);--s2:0 4px 16px rgba(0,0,0,.10);--s3:0 8px 32px rgba(0,0,0,.14)
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);font-size:14px;line-height:1.5;overflow:hidden}
+#app{display:flex;height:100vh}
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.sb{width:210px;min-width:210px;background:var(--sb);display:flex;flex-direction:column;height:100vh;overflow-y:auto;flex-shrink:0}
+.sb::-webkit-scrollbar{width:4px}.sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.sb-logo{padding:16px 14px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo-icon{width:30px;height:30px;background:var(--p);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-logo-icon svg{width:16px;height:16px}
+.sb-logo-text{color:#fff;font-weight:700;font-size:15px;letter-spacing:-.3px}
+.sb-logo-sub{color:var(--st);font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase}
+.sb-nav{padding:8px 0;flex:1}
+.sb-sec{padding:14px 14px 4px;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.22)}
+.sb-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;color:var(--st);font-size:13px;font-weight:400;transition:all .15s;position:relative}
+.sb-item:hover{background:var(--sh);color:#fff}
+.sb-item.active{background:var(--p);color:#fff;font-weight:500}
+.sb-item svg{width:15px;height:15px;flex-shrink:0}
+.sb-item .cnt{margin-left:auto;background:rgba(255,255,255,.15);color:rgba(255,255,255,.7);font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600}
+.sb-item.active .cnt{background:rgba(255,255,255,.25);color:#fff}
+.sb-divider{height:1px;background:rgba(255,255,255,.06);margin:6px 0}
+
+/* ── MAIN ────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:50px;background:var(--white);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.tb-search{flex:1;max-width:400px;position:relative}
+.tb-search input{width:100%;height:32px;background:var(--bg);border:1px solid var(--bdr);border-radius:7px;padding:0 10px 0 32px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border .2s}
+.tb-search input:focus{border-color:var(--p);background:#fff}
+.tb-si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--tm)}
+.tb-user{display:flex;align-items:center;gap:9px;margin-left:auto}
+.tb-av{width:30px;height:30px;border-radius:50%;background:var(--p);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+.tb-name{font-size:13px;font-weight:600}
+.tb-email{font-size:11px;color:var(--tm)}
+
+/* ── CONTENT ─────────────────────────────────────────── */
+.content{flex:1;overflow-y:auto}
+.view{display:none;height:100%;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+
+/* ── BREADCRUMB ──────────────────────────────────────── */
+.bc{padding:11px 18px 0;display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--tm);flex-shrink:0}
+.bc span{cursor:pointer}.bc span:hover{color:var(--p)}.bc .sep{color:var(--bdr);cursor:default}.bc .cur{color:var(--t2);font-weight:500;cursor:default}
+
+/* ── PAGE HEADER ─────────────────────────────────────── */
+.ph{padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;flex-shrink:0}
+.ph-title{font-size:19px;font-weight:700;color:var(--t1);letter-spacing:-.3px}
+.ph-actions{display:flex;align-items:center;gap:7px}
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:0 13px;height:32px;border-radius:7px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--pd)}
+.btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{background:#059669}
+.btn-err{background:var(--err);color:#fff}.btn-err:hover{background:#DC2626}
+.btn-g{background:transparent;color:var(--t2);border:1px solid var(--bdr)}.btn-g:hover{background:var(--bg)}
+.btn-w{background:var(--white);color:var(--t1);border:1px solid var(--bdr)}.btn-w:hover{background:var(--bg)}
+.btn svg{width:13px;height:13px}
+.btn-sm{height:28px;padding:0 10px;font-size:12px}
+.btn-dd{display:inline-flex;align-items:center;gap:0}
+.btn-dd .main-part{border-radius:7px 0 0 7px;border-right:1px solid rgba(255,255,255,.2)}
+.btn-dd .arr{border-radius:0 7px 7px 0;padding:0 8px}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.tc{padding:0 18px 20px}
+.ttbar{background:var(--white);border:1px solid var(--bdr);border-bottom:none;border-radius:var(--r) var(--r) 0 0;padding:10px 14px;display:flex;align-items:center;gap:9px}
+.tsearch{position:relative;flex:1;max-width:260px}
+.tsearch input{width:100%;height:30px;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;padding:0 10px 0 28px;font-family:inherit;font-size:12.5px;outline:none}
+.tsearch input:focus{border-color:var(--p);background:#fff}
+.tsi{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--tm);width:13px;height:13px}
+.ta{margin-left:auto;display:flex;gap:7px}
+.tw{background:var(--white);border:1px solid var(--bdr);overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--bg)}
+th{padding:8px 13px;text-align:left;font-weight:600;font-size:11.5px;color:var(--t2);border-bottom:1px solid var(--bdr);white-space:nowrap}
+td{padding:9px 13px;border-bottom:1px solid #F0F0F8;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FAFAFA}
+.tl{color:var(--p);font-weight:500;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px}
+.tl:hover{text-decoration:underline}
+.pagi{background:var(--white);border:1px solid var(--bdr);border-top:none;padding:9px 14px;display:flex;align-items:center;gap:5px;border-radius:0 0 var(--r) var(--r);font-size:12px;color:var(--t2)}
+.pb{width:26px;height:26px;border:1px solid var(--bdr);background:var(--white);border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:var(--t2);transition:all .15s}
+.pb:hover{border-color:var(--p);color:var(--p)}.pb.on{background:var(--p);border-color:var(--p);color:#fff}
+.pi{margin-left:auto;color:var(--tm);font-size:11.5px}
+.pps{height:26px;border:1px solid var(--bdr);border-radius:5px;padding:0 5px;font-size:12px;background:var(--white);outline:none;cursor:pointer}
+
+/* ── BADGES ──────────────────────────────────────────── */
+.bs{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.b-open{background:var(--infobg);color:var(--info)}
+.b-rel{background:var(--okbg);color:var(--ok)}
+.b-pend{background:var(--warnbg);color:var(--warn)}
+.b-pick{background:#F3E8FF;color:var(--p)}
+.b-post{background:#F0FDF4;color:#15803D}
+
+/* ── SUBTABS ─────────────────────────────────────────── */
+.stabs{padding:0 18px;display:flex;gap:2px;border-bottom:1px solid var(--bdr);background:var(--white);flex-shrink:0;overflow-x:auto}
+.stab{padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--t2);transition:all .15s;margin-bottom:-1px;white-space:nowrap}
+.stab:hover{color:var(--p)}.stab.on{color:var(--p);border-bottom-color:var(--p)}
+
+/* ── DETAIL HEADER (matching inbound screenshot) ────── */
+.det-header{background:linear-gradient(90deg,#6D28D9 0%,#7C3AED 100%);padding:0 18px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.det-title{color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:10px}
+.det-title svg{opacity:.7}
+.det-close{background:rgba(255,255,255,.15);border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:background .15s}
+.det-close:hover{background:rgba(255,255,255,.25)}
+
+/* ── ACTION BAR ──────────────────────────────────────── */
+.abar{background:var(--white);border-bottom:1px solid var(--bdr);padding:8px 18px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex-shrink:0}
+.abar-sep{width:1px;height:22px;background:var(--bdr);margin:0 3px}
+.abar-right{margin-left:auto;display:flex;gap:7px;align-items:center}
+
+/* ── FLOW MINI-STEPPER (on detail pages) ────────────── */
+.mini-stepper{background:var(--white);border-bottom:1px solid var(--bdr);padding:10px 18px;display:flex;align-items:center;gap:0;flex-shrink:0;overflow-x:auto}
+.ms-label{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tm);white-space:nowrap;margin-right:14px}
+.ms-step{display:flex;align-items:center;gap:0;flex:1;min-width:60px;position:relative;cursor:default}
+.ms-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--bdr);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--tm);flex-shrink:0;z-index:1;transition:all .2s}
+.ms-step.done .ms-dot{background:var(--p);border-color:var(--p);color:#fff}
+.ms-step.cur .ms-dot{background:var(--p);border-color:var(--p);color:#fff;box-shadow:0 0 0 4px rgba(124,58,237,.15)}
+.ms-line{flex:1;height:2px;background:var(--bdr)}
+.ms-step.done .ms-line{background:var(--p)}
+.ms-step:last-child .ms-line{display:none}
+.ms-name{font-size:9.5px;color:var(--tm);white-space:nowrap;margin-left:4px}
+.ms-step.cur .ms-name{color:var(--p);font-weight:600}
+.ms-step.done .ms-name{color:var(--t2)}
+
+/* ── DETAIL CONTENT ──────────────────────────────────── */
+.det-body{flex:1;overflow-y:auto;padding:16px 18px}
+.sec-label{font-size:12px;font-weight:600;color:var(--p);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.sec-label svg{width:13px;height:13px}
+.form-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 18px}
+.form-grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px}
+.form-grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.s2{grid-column:span 2}.fg.s3{grid-column:span 3}.fg.s4{grid-column:span 4}
+.fl{font-size:11.5px;font-weight:500;color:var(--t2)}
+.fl.req::after{content:' *';color:var(--err)}
+.fi,.fs{height:32px;border:1px solid var(--bdr);border-radius:6px;padding:0 10px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;background:var(--white);width:100%;transition:border .2s}
+.fi:focus,.fs:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(124,58,237,.08)}
+.fi:disabled,.fs:disabled{background:var(--bg);color:var(--tm);cursor:not-allowed}
+.fi.ro{background:#F7F7FC}
+.sdiv{height:1px;background:var(--bdr);margin:16px 0}
+.lines-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.lines-title{font-size:13px;font-weight:600;color:var(--t1)}
+.lines-search{position:relative}
+.lines-search input{height:28px;border:1px solid var(--bdr);border-radius:6px;padding:0 10px 0 28px;font-family:inherit;font-size:12px;outline:none;width:200px;background:var(--bg)}
+.lines-search input:focus{border-color:var(--p);background:#fff}
+.ls-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--tm);width:12px;height:12px}
+.lt{width:100%;border-collapse:collapse;font-size:12.5px}
+.lt th{padding:7px 11px;background:var(--bg);font-weight:600;font-size:11px;color:var(--t2);text-align:left;border-bottom:1px solid var(--bdr)}
+.lt td{padding:9px 11px;border-bottom:1px solid #F2F2F8}
+.lt tr:last-child td{border-bottom:none}
+.lt-wrap{border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
+.ei{height:28px;border:1px solid var(--bdr);border-radius:5px;padding:0 7px;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;text-align:right;background:var(--white);width:80px}
+.ei:focus{border-color:var(--p);box-shadow:0 0 0 2px rgba(124,58,237,.1)}
+.tag{display:inline-flex;align-items:center;background:var(--pbg);color:var(--p);font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:4px}
+
+/* ── NEXT ACTION BANNER ──────────────────────────────── */
+.next-banner{background:linear-gradient(135deg,#4C1D95,#7C3AED);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.nb-icon{width:36px;height:36px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nb-text h4{color:#fff;font-size:13.5px;font-weight:700;margin-bottom:2px}
+.nb-text p{color:rgba(255,255,255,.8);font-size:12px}
+.nb-btn{margin-left:auto;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:inherit;font-size:12.5px;font-weight:500;padding:6px 14px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.nb-btn:hover{background:rgba(255,255,255,.3)}
+
+/* ── NEW ORDER FORM (matching Image 2) ───────────────── */
+.form-page{flex:1;overflow-y:auto;padding:14px 18px 24px}
+.fp-card{background:var(--white);border:1px solid var(--bdr);border-radius:var(--rl);overflow:hidden;margin-bottom:14px}
+.fp-ch{padding:12px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.fp-ct{font-size:13px;font-weight:600;color:var(--p);display:flex;align-items:center;gap:7px}
+.fp-ct svg{width:14px;height:14px}
+.fp-more{font-size:12px;color:var(--p);cursor:pointer;text-decoration:none}
+.fp-body{padding:18px}
+
+/* ── INFO CARDS (summary row) ───────────────────────── */
+.ic-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.ic{background:var(--bg);border-radius:var(--r);padding:10px 13px}
+.ic-l{font-size:10.5px;font-weight:500;color:var(--tm);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.ic-v{font-size:14px;font-weight:600;color:var(--t1);font-family:'JetBrains Mono',monospace}
+
+/* ── WARNING / INFO BOXES ───────────────────────────── */
+.alert{border-radius:var(--r);padding:11px 14px;display:flex;align-items:flex-start;gap:9px;margin-bottom:14px}
+.alert svg{flex-shrink:0;margin-top:1px}
+.alert-text{font-size:12.5px}
+.alert-warn{background:#FFFBF0;border:1px solid #FDE68A}
+.alert-warn .alert-text{color:#92400E}
+.alert-info{background:var(--pbg);border:1px solid #C4B5FD}
+.alert-info .alert-text{color:#5B21B6}
+.alert-ok{background:#F0FDF4;border:1px solid #A7F3D0}
+.alert-ok .alert-text{color:#065F46}
+
+/* ── COMPLETE SCREEN ─────────────────────────────────── */
+.complete-wrap{text-align:center;padding:48px 24px}
+.complete-icon{width:68px;height:68px;background:linear-gradient(135deg,#10B981,#059669);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 8px 24px rgba(16,185,129,.3)}
+.complete-wrap h2{font-size:21px;font-weight:700;margin-bottom:7px}
+.complete-wrap p{font-size:13.5px;color:var(--t2);margin-bottom:22px}
+.cs{display:inline-flex;gap:20px;background:var(--bg);border-radius:var(--rl);padding:14px 22px;margin-bottom:22px;text-align:left}
+.cs-item .cl{font-size:10.5px;color:var(--tm);text-transform:uppercase;letter-spacing:.5px}
+.cs-item .cv{font-size:14px;font-weight:700;color:var(--p);font-family:'JetBrains Mono',monospace}
+
+/* ── TOAST ───────────────────────────────────────────── */
+.toast-wrap{position:fixed;top:14px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.toast{background:var(--white);border:1px solid var(--bdr);border-left:4px solid var(--ok);border-radius:var(--r);padding:11px 14px;box-shadow:var(--s3);min-width:260px;max-width:360px;display:flex;align-items:flex-start;gap:9px;animation:toastIn .25s ease}
+.toast.err{border-left-color:var(--err)}.toast.warn{border-left-color:var(--warn)}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.toast-msg{font-size:12px;color:var(--tm)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D0D0E0;border-radius:3px}::-webkit-scrollbar-thumb:hover{background:#B0B0C0}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="8" width="6" height="7" rx="1" fill="white" opacity=".9"/><rect x="9" y="4" width="6" height="11" rx="1" fill="white" opacity=".7"/><rect x="1" y="1" width="6" height="5" rx="1" fill="white" opacity=".5"/></svg>
+    </div>
+    <div><div class="sb-logo-text">MAGIC</div><div class="sb-logo-sub">WMS</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-item" id="nav-dashboard" onclick="go('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </div>
+    <div class="sb-item" onclick="go('client')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Client
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-sec">INBOUND</div>
+    <div class="sb-item" id="nav-asns" onclick="go('asns')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>ASNs
+    </div>
+    <div class="sb-item" id="nav-inspections" onclick="go('inspections')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Inspections
+    </div>
+    <div class="sb-item" id="nav-receipts" onclick="go('receipts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>Receipts
+    </div>
+    <div class="sb-item" id="nav-putaway" onclick="go('putaway')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Putaway
+    </div>
+    <div class="sb-item" id="nav-returns" onclick="go('returns')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.58"/></svg>Returns
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-sec">OUTBOUND</div>
+    <div class="sb-item" id="nav-ob-orders" onclick="go('ob-orders')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Orders<span class="cnt">10</span>
+    </div>
+    <div class="sb-item" id="nav-ob-shipments" onclick="go('ob-shipments')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Shipments<span class="cnt">10</span>
+    </div>
+    <div class="sb-item" id="nav-ob-picks" onclick="go('ob-picks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>Picks<span class="cnt">6</span>
+    </div>
+    <div class="sb-item" id="nav-ob-posted" onclick="go('ob-posted')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Posted
+    </div>
+
+    <div class="sb-divider"></div>
+    <div class="sb-item" onclick="go('inventory')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Inventory
+    </div>
+    <div class="sb-item" onclick="go('warehouse')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Warehouse
+    </div>
+    <div class="sb-item" onclick="go('reports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports
+    </div>
+    <div class="sb-item" onclick="go('billing')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Billing
+    </div>
+    <div class="sb-item" onclick="go('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-item" onclick="go('logout')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout
+    </div>
+  </nav>
+</aside>
+
+<!-- ══════════════════════ MAIN ═══════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-search">
+      <svg class="tb-si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search orders, shipments, picks...">
+    </div>
+    <div class="tb-user">
+      <div class="tb-av">AM</div>
+      <div><div class="tb-name">Allyson Grace Mayo</div><div class="tb-email">allyson.mayo.test@gm.com</div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ PLACEHOLDER VIEWS ══ -->
+    <div class="view" id="view-dashboard"><div style="padding:40px;text-align:center;color:var(--tm)">Dashboard</div></div>
+    <div class="view" id="view-client"><div style="padding:40px;text-align:center;color:var(--tm)">Clients</div></div>
+    <div class="view" id="view-asns"><div style="padding:40px;text-align:center;color:var(--tm)">ASNs</div></div>
+    <div class="view" id="view-inspections"><div style="padding:40px;text-align:center;color:var(--tm)">Inspections</div></div>
+    <div class="view" id="view-receipts"><div style="padding:40px;text-align:center;color:var(--tm)">Receipts</div></div>
+    <div class="view" id="view-putaway"><div style="padding:40px;text-align:center;color:var(--tm)">Putaway</div></div>
+    <div class="view" id="view-returns"><div style="padding:40px;text-align:center;color:var(--tm)">Returns</div></div>
+    <div class="view" id="view-inventory"><div style="padding:40px;text-align:center;color:var(--tm)">Inventory</div></div>
+    <div class="view" id="view-warehouse"><div style="padding:40px;text-align:center;color:var(--tm)">Warehouse</div></div>
+    <div class="view" id="view-reports"><div style="padding:40px;text-align:center;color:var(--tm)">Reports</div></div>
+    <div class="view" id="view-billing"><div style="padding:40px;text-align:center;color:var(--tm)">Billing</div></div>
+    <div class="view" id="view-settings"><div style="padding:40px;text-align:center;color:var(--tm)">Settings</div></div>
+    <div class="view" id="view-logout"><div style="padding:40px;text-align:center;color:var(--tm)">Logout</div></div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — ORDERS LIST
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-orders">
+      <div class="bc">
+        <span onclick="go('dashboard')">Dashboard</span><span class="sep">›</span>
+        <span class="cur">Outbound Orders</span>
+      </div>
+      <div class="ph">
+        <div class="ph-title">Orders</div>
+        <div class="ph-actions">
+          <button class="btn btn-g btn-sm" onclick="go('ob-posted')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            Posted Sales Shipments
+          </button>
+          <button class="btn btn-g btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Clear Filters
+          </button>
+          <button class="btn btn-g btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </button>
+          <button class="btn btn-p btn-sm" onclick="go('ob-order-new')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+      </div>
+      <div class="stabs">
+        <div class="stab on">Orders</div>
+      </div>
+      <div class="tc" style="padding-top:12px">
+        <div class="ttbar">
+          <div class="tsearch">
+            <svg class="tsi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Type in to Search...">
+          </div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th style="width:110px">No ↓</th><th style="width:28px"></th>
+              <th>Client</th><th>Customer No.</th><th>Customer Name</th>
+              <th>Order Date</th><th>Location</th><th>Status</th>
+            </tr></thead>
+            <tbody id="ob-orders-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagi">
+          <button class="pb">‹‹</button><button class="pb">‹</button>
+          <button class="pb on">1</button><button class="pb">2</button><button class="pb">3</button>
+          <button class="pb">›</button><button class="pb">››</button>
+          <select class="pps"><option>10</option><option>25</option><option>50</option></select>
+          <span style="color:var(--tm)">Items per page</span>
+          <span class="pi">Page 1 of 10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — NEW ORDER FORM  (matching Image 2 style)
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-order-new">
+      <!-- purple header like image 2 -->
+      <div class="det-header">
+        <div class="det-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          New Order
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-g btn-sm" onclick="go('ob-orders')">Cancel</button>
+          <div class="btn-dd">
+            <button class="btn btn-p btn-sm main-part" id="btn-save-new-order">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save
+            </button>
+            <button class="btn btn-p btn-sm arr">▾</button>
+          </div>
+          <button class="det-close" onclick="go('ob-orders')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- tabs -->
+      <div class="stabs"><div class="stab on">General</div></div>
+      <!-- form content -->
+      <div class="form-page">
+        <div class="fp-card">
+          <div class="fp-ch"><div class="fp-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>General</div><span class="fp-more">Show More</span></div>
+          <div class="fp-body">
+            <div class="form-grid3">
+              <div class="fg"><label class="fl req">Client</label><select class="fs" id="nf-client"><option value="">Select client...</option><option>Phyllis Batz</option><option>Zalatan</option><option>Polo Shirts</option></select></div>
+              <div class="fg"><label class="fl">Customer No.</label><input class="fi" id="nf-custno" placeholder="e.g. CUST1006"></div>
+              <div class="fg"><label class="fl">Customer Name</label><input class="fi" id="nf-custname" placeholder="Full name"></div>
+              <div class="fg"><label class="fl req">Order Date</label><input type="date" class="fi" id="nf-odate" value="2026-05-18"></div>
+              <div class="fg"><label class="fl">Posting Date</label><input type="date" class="fi" id="nf-pdate" value="2026-05-18"></div>
+              <div class="fg"><label class="fl">Posting Description</label><input class="fi" id="nf-pdesc" placeholder="Description..."></div>
+              <div class="fg"><label class="fl">Document Date</label><input type="date" class="fi"></div>
+              <div class="fg"><label class="fl">External Document No.</label><input class="fi" placeholder="Ext. doc no."></div>
+              <div class="fg"><label class="fl">Requested Delivery Date</label><input type="date" class="fi"></div>
+              <div class="fg"><label class="fl">Promised Delivery Date</label><input type="date" class="fi"></div>
+              <div class="fg"><label class="fl req">Location</label><select class="fs" id="nf-loc"><option value="">Select location...</option><option>L4</option><option>ORANGE</option><option>L1</option></select></div>
+              <div class="fg"><label class="fl">Shipment Date</label><input type="date" class="fi"></div>
+              <div class="fg"><label class="fl">Shipping Advice</label><select class="fs"><option value="">—</option><option>Partial</option><option>Complete</option></select></div>
+              <div class="fg"><label class="fl">Assigned User</label><select class="fs"><option value="">—</option><option>Allyson Grace Mayo</option></select></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="fp-card">
+          <div class="fp-ch">
+            <div class="fp-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>Lines (0)</div>
+            <button class="btn btn-p btn-sm" id="btn-nf-addline">+ Add Line</button>
+          </div>
+          <div class="fp-body" style="padding-top:10px">
+            <div class="lines-search" style="margin-bottom:10px">
+              <svg class="ls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search">
+            </div>
+            <div class="lt-wrap">
+              <table class="lt">
+                <thead><tr><th>Line No.</th><th>Item No.</th><th>Variant Code</th><th>UOM</th><th>Description</th><th>Quantity</th><th></th></tr></thead>
+                <tbody id="nf-lines-body"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--tm)">No records available.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="fp-card">
+          <div class="fp-ch"><div class="fp-ct"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>Shipping</div><span class="fp-more">Show More</span></div>
+          <div class="fp-body">
+            <div class="form-grid4">
+              <div class="fg"><label class="fl">Shipment Method Code</label><select class="fs"><option value="">—</option><option>STANDARD</option><option>EXPRESS</option></select></div>
+              <div class="fg"><label class="fl">Shipping Agent Code</label><select class="fs"><option value="">—</option><option>DHL</option><option>FEDEX</option><option>UPS</option></select></div>
+              <div class="fg"><label class="fl">Shipping Agent Service Code</label><select class="fs"><option value="">—</option></select></div>
+              <div class="fg"><label class="fl">Package Tracking No.</label><input class="fi" placeholder="Tracking no."></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — ORDER DETAIL  (Step 1-3 actions here)
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-order-detail">
+      <div class="det-header">
+        <div class="det-title" id="od-header-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Outbound Order — <span id="od-no-display">—</span>
+        </div>
+        <button class="det-close" onclick="go('ob-orders')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <!-- mini flow stepper -->
+      <div class="mini-stepper" id="od-stepper"></div>
+      <!-- tabs -->
+      <div class="stabs"><div class="stab on">General</div><div class="stab">Comments</div></div>
+      <!-- action bar -->
+      <div class="abar" id="od-abar">
+        <!-- rendered dynamically -->
+      </div>
+      <!-- body -->
+      <div class="det-body" id="od-body">
+        <!-- rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — WAREHOUSE SHIPMENTS LIST  (matching Image 3)
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-shipments">
+      <div class="bc">
+        <span onclick="go('dashboard')">Dashboard</span><span class="sep">›</span>
+        <span class="cur">Warehouse Shipments</span>
+      </div>
+      <div class="ph">
+        <div class="ph-title">Warehouse Shipments</div>
+        <div class="ph-actions">
+          <button class="btn btn-g btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Clear Filters
+          </button>
+          <button class="btn btn-p btn-sm" onclick="toast('info','Add Shipment','Create a shipment from an order detail page.')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+      </div>
+      <div class="stabs">
+        <div class="stab on" onclick="this.parentElement.querySelectorAll('.stab').forEach(s=>s.classList.remove('on'));this.classList.add('on')">Warehouse Shipments</div>
+        <div class="stab" onclick="go('ob-posted');this.parentElement.querySelectorAll('.stab').forEach(s=>s.classList.remove('on'));this.classList.add('on')">Posted Warehouse Shipments</div>
+      </div>
+      <div class="tc" style="padding-top:12px">
+        <div class="ttbar">
+          <div class="tsearch">
+            <svg class="tsi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Type in to Search...">
+          </div>
+          <div class="ta"><button class="btn btn-g btn-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Clear Filters</button></div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th style="width:110px">No ↓</th><th style="width:28px"></th>
+              <th>Source Order</th><th>Location</th><th>Assigned User</th>
+              <th>Pick Status</th><th>Status</th>
+            </tr></thead>
+            <tbody id="ob-shipments-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagi">
+          <button class="pb">‹‹</button><button class="pb">‹</button>
+          <button class="pb on">1</button><button class="pb">2</button><button class="pb">3</button>
+          <button class="pb">›</button><button class="pb">››</button>
+          <select class="pps"><option>10</option><option>25</option><option>50</option></select>
+          <span style="color:var(--tm)">Items per page</span>
+          <span class="pi">Page 1 of 10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — SHIPMENT DETAIL  (matching Image 4)
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-shipment-detail">
+      <div class="det-header">
+        <div class="det-title" id="sd-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          Warehouse Shipment — <span id="sd-no-display">—</span>
+        </div>
+        <button class="det-close" onclick="go('ob-shipments')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="mini-stepper" id="sd-stepper"></div>
+      <div class="stabs"><div class="stab on">General</div><div class="stab">Comments</div></div>
+      <div class="abar" id="sd-abar"></div>
+      <div class="det-body" id="sd-body"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — WAREHOUSE PICKS LIST  (matching Image 5)
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-picks">
+      <div class="bc">
+        <span onclick="go('dashboard')">Dashboard</span><span class="sep">›</span>
+        <span class="cur">Warehouse Picks</span>
+      </div>
+      <div class="ph">
+        <div class="ph-title">Warehouse Picks</div>
+        <div class="ph-actions">
+          <button class="btn btn-g btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Clear Filters
+          </button>
+        </div>
+      </div>
+      <div class="stabs">
+        <div class="stab on">Warehouse Picks</div>
+        <div class="stab">Registered Warehouse Picks</div>
+      </div>
+      <div class="tc" style="padding-top:12px">
+        <div class="ttbar">
+          <div class="tsearch">
+            <svg class="tsi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Type in to Search...">
+          </div>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr>
+              <th style="width:110px">No ↓</th><th style="width:28px"></th>
+              <th>Source Shipment</th><th>Location</th><th>Assigned User</th>
+            </tr></thead>
+            <tbody id="ob-picks-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagi">
+          <button class="pb">‹‹</button><button class="pb">‹</button>
+          <button class="pb on">1</button>
+          <button class="pb">›</button><button class="pb">››</button>
+          <select class="pps"><option>10</option><option>25</option><option>50</option></select>
+          <span style="color:var(--tm)">Items per page</span>
+          <span class="pi">Page 1 of 1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         OUTBOUND — PICK DETAIL
+    ══════════════════════════════════════════════════════ -->
+    <div class="view" id="view-ob-pick-detail">
+      <div class="det-header">
+        <div class="det-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg>
+          Warehouse Pick — <span id="pd-no-display">—</span>
+        </div>
+        <button class="det-close" onclick="go('ob-picks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="mini-stepper" id="pd-stepper"></div>
+      <div class="stabs"><div class="stab on">General</div><div class="stab">Comments</div></div>
+      <div class="abar" id="pd-abar"></div>
+      <div class="det-body" id="pd-body"></div>
+    </div>
+
+    <!-- ══ POSTED ══ -->
+    <div class="view" id="view-ob-posted">
+      <div class="bc"><span onclick="go('ob-orders')">Orders</span><span class="sep">›</span><span class="cur">Posted Sales Shipments</span></div>
+      <div class="ph"><div class="ph-title">Posted Sales Shipments</div></div>
+      <div class="tc" style="padding-top:12px">
+        <div class="ttbar"><div class="tsearch"><svg class="tsi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Type in to Search..."></div></div>
+        <div class="tw"><table><thead><tr><th>No ↓</th><th>Source Order</th><th>Client</th><th>Post Date</th><th>Location</th><th>Status</th></tr></thead><tbody id="ob-posted-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div class="toast-wrap" id="tw"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  DATA & STATE
+// ═══════════════════════════════════════════════════════
+const DB = {
+  orders: [
+    { no:'PSO175', client:'Phyllis Batz',  custNo:'',       custName:'',           date:'05/18/2026', loc:'L4',     status:'Open',     step:1 },
+    { no:'PSO174', client:'Phyllis Batz',  custNo:'',       custName:'',           date:'04/28/2026', loc:'L4',     status:'Open',     step:1 },
+    { no:'PSO172', client:'Phyllis Batz',  custNo:'',       custName:'',           date:'04/24/2026', loc:'L4',     status:'Open',     step:1 },
+    { no:'PSO169', client:'Zalatan',       custNo:'',       custName:'',           date:'04/23/2026', loc:'L4',     status:'Released', step:3 },
+    { no:'PSO168', client:'Phyllis Batz',  custNo:'',       custName:'',           date:'04/23/2026', loc:'L4',     status:'Released', step:3 },
+    { no:'PSO165', client:'Phyllis Batz',  custNo:'CUST1006', custName:'Michael Roth', date:'04/22/2026', loc:'L4', status:'Released', step:3 },
+    { no:'PSO164', client:'Phyllis Batz',  custNo:'CUST1006', custName:'Michael Roth', date:'04/22/2026', loc:'L4', status:'Released', step:3 },
+    { no:'PSO163', client:'Phyllis Batz',  custNo:'CUST1006', custName:'Michael Roth', date:'04/22/2026', loc:'L4', status:'Released', step:3 },
+    { no:'PSO162', client:'Polo Shirts',   custNo:'CUSTM201', custName:'Frank Khalid', date:'04/21/2026', loc:'ORANGE', status:'Released', step:3 },
+    { no:'PSO160', client:'Polo Shirts',   custNo:'',       custName:'',           date:'04/09/2026', loc:'ORANGE', status:'Open',    step:1 },
+  ],
+  shipments: [
+    { no:'WSHIP200', orderNo:'PSO175', loc:'L4',     pickStatus:'Pending',          status:'Released', step:4, zone:'SHIP', bin:'SHIP' },
+    { no:'WSHIP199', orderNo:'PSO172', loc:'L4',     pickStatus:'Pending',          status:'Released', step:5 },
+    { no:'WSHIP197', orderNo:'PSO169', loc:'L4',     pickStatus:'Pending',          status:'Open',     step:4 },
+    { no:'WSHIP194', orderNo:'PSO168', loc:'L4',     pickStatus:'Completely Picked',status:'Open',     step:9 },
+    { no:'WSHIP193', orderNo:'PSO165', loc:'L4',     pickStatus:'Pending',          status:'Released', step:5 },
+    { no:'WSHIP190', orderNo:'PSO164', loc:'L4',     pickStatus:'Completely Picked',status:'Released', step:8 },
+    { no:'WSHIP189', orderNo:'PSO163', loc:'L4',     pickStatus:'Pending',          status:'Released', step:5 },
+    { no:'WSHIP187', orderNo:'PSO162', loc:'ORANGE', pickStatus:'Pending',          status:'Released', step:5 },
+    { no:'WSHIP186', orderNo:'PSO160', loc:'L4',     pickStatus:'Completely Picked',status:'Open',     step:9 },
+    { no:'WSHIP185', orderNo:'PSO163', loc:'L4',     pickStatus:'Pending',          status:'Open',     step:4 },
+  ],
+  picks: [
+    { no:'WPI192', shipNo:'WSHIP200', orderNo:'PSO175', loc:'L4',     step:7 },
+    { no:'WPI191', shipNo:'WSHIP193', orderNo:'PSO165', loc:'L4',     step:7 },
+    { no:'WPI181', shipNo:'WSHIP190', orderNo:'PSO164', loc:'L4',     step:8 },
+    { no:'WPI176', shipNo:'WSHIP199', orderNo:'PSO172', loc:'L4',     step:7 },
+    { no:'WPI175', shipNo:'WSHIP187', orderNo:'PSO162', loc:'ORANGE', step:8 },
+    { no:'WPI165', shipNo:'WSHIP186', orderNo:'PSO160', loc:'L4',     step:8 },
+  ],
+  posted: [],
+  counters: { order:176, ship:201, pick:192 }
+};
+
+let SEL = { order:null, ship:null, pick:null };
+
+const STEPS = [
+  { n:1, s:'Create PSO' }, { n:2, s:'Release' },
+  { n:3, s:'Create WSHIP' }, { n:4, s:'Zone/Bin' },
+  { n:5, s:'Rel. WSHIP' }, { n:6, s:'Create Pick' },
+  { n:7, s:'Pick Qty' }, { n:8, s:'Reg. Pick' },
+  { n:9, s:'Post' }
+];
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function go(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('view-'+v);
+  if (el) el.classList.add('active');
+  // sidebar active
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('active'));
+  const navMap = { 'ob-orders':'nav-ob-orders','ob-order-new':'nav-ob-orders','ob-order-detail':'nav-ob-orders',
+                   'ob-shipments':'nav-ob-shipments','ob-shipment-detail':'nav-ob-shipments',
+                   'ob-picks':'nav-ob-picks','ob-pick-detail':'nav-ob-picks',
+                   'ob-posted':'nav-ob-posted',
+                   'asns':'nav-asns','inspections':'nav-inspections','receipts':'nav-receipts',
+                   'putaway':'nav-putaway','returns':'nav-returns','dashboard':'nav-dashboard' };
+  const n = document.getElementById(navMap[v]);
+  if(n) n.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER TABLES
+// ═══════════════════════════════════════════════════════
+function renderOrders() {
+  const tbody = document.getElementById('ob-orders-tbody');
+  tbody.innerHTML = DB.orders.map(o => `
+    <tr>
+      <td><a class="tl" onclick="openOrder('${o.no}')">${o.no}</a></td>
+      <td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--tm);cursor:pointer"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></td>
+      <td>${o.client}</td><td>${o.custNo}</td><td>${o.custName}</td>
+      <td>${o.date}</td><td>${o.loc}</td>
+      <td>${badge(o.status)}</td>
+    </tr>`).join('');
+}
+
+function renderShipments() {
+  const tbody = document.getElementById('ob-shipments-tbody');
+  tbody.innerHTML = DB.shipments.map(s => `
+    <tr>
+      <td><a class="tl" onclick="openShipment('${s.no}')">${s.no}</a></td>
+      <td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--tm);cursor:pointer"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></td>
+      <td><a class="tl" onclick="openOrder('${s.orderNo}')">${s.orderNo}</a></td>
+      <td>${s.loc}</td><td>—</td>
+      <td>${badge(s.pickStatus)}</td>
+      <td>${badge(s.status)}</td>
+    </tr>`).join('');
+}
+
+function renderPicks() {
+  const tbody = document.getElementById('ob-picks-tbody');
+  tbody.innerHTML = DB.picks.map(p => `
+    <tr>
+      <td><a class="tl" onclick="openPick('${p.no}')">${p.no}</a></td>
+      <td><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--tm);cursor:pointer"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></td>
+      <td><a class="tl" onclick="openShipment('${p.shipNo}')">${p.shipNo}</a></td>
+      <td>${p.loc}</td><td>—</td>
+    </tr>`).join('');
+}
+
+function renderPosted() {
+  const tbody = document.getElementById('ob-posted-tbody');
+  tbody.innerHTML = DB.posted.length ? DB.posted.map(p=>`
+    <tr><td class="tl">${p.no}</td><td>${p.orderNo}</td><td>${p.client}</td><td>${p.date}</td><td>${p.loc}</td><td>${badge('Posted')}</td></tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--tm)">No posted shipments yet.</td></tr>`;
+}
+
+function badge(s) {
+  const m={Open:'b-open',Released:'b-rel',Pending:'b-pend','Completely Picked':'b-pick',Posted:'b-post'};
+  return `<span class="bs ${m[s]||'b-open'}">${s}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  MINI STEPPER
+// ═══════════════════════════════════════════════════════
+function miniStepper(containerId, currentStep) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = `<span class="ms-label">Fulfillment Flow</span>`
+    + STEPS.map((s,i) => {
+      const cls = s.n < currentStep ? 'done' : s.n === currentStep ? 'cur' : '';
+      const icon = s.n < currentStep
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>`
+        : s.n;
+      return `<div class="ms-step ${cls}"><div class="ms-dot">${icon}</div><span class="ms-name">${s.s}</span>${i<STEPS.length-1?'<div class="ms-line"></div>':''}</div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  OPEN ORDER DETAIL
+// ═══════════════════════════════════════════════════════
+function openOrder(no) {
+  const o = DB.orders.find(x=>x.no===no); if(!o) return;
+  SEL.order = no;
+  document.getElementById('od-no-display').textContent = no;
+  miniStepper('od-stepper', o.step);
+  renderOrderActionBar(o);
+  renderOrderBody(o);
+  go('ob-order-detail');
+}
+
+function renderOrderActionBar(o) {
+  const abar = document.getElementById('od-abar');
+  let btns = `
+    <button class="btn btn-g btn-sm" onclick="go('ob-orders')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <div class="abar-sep"></div>
+    <button class="btn btn-g btn-sm">Actions ▾</button>
+    <button class="btn btn-g btn-sm">Prepare ▾</button>
+    <button class="btn btn-g btn-sm">Related ▾</button>
+  `;
+  const abarRight = document.createElement('div');
+  abarRight.style.marginLeft='auto'; abarRight.style.display='flex'; abarRight.style.gap='7px';
+
+  if(o.status === 'Open') {
+    btns += `<button class="btn btn-ok btn-sm" onclick="releaseOrder('${o.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Release
+    </button>`;
+  }
+  if(o.status === 'Released') {
+    btns += `<button class="btn btn-p btn-sm" onclick="createShipment('${o.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
+      Create Warehouse Shipment
+    </button>`;
+    // find existing shipment
+    const ship = DB.shipments.find(s=>s.orderNo===o.no);
+    if(ship) {
+      btns += `<button class="btn btn-g btn-sm" onclick="openShipment('${ship.no}')">
+        View ${ship.no} →
+      </button>`;
+    }
+  }
+  btns += `<div class="abar-sep"></div>
+    <button class="btn btn-err btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Delete
+    </button>
+    <div class="btn-dd">
+      <button class="btn btn-p btn-sm main-part">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+      </button>
+      <button class="btn btn-p btn-sm arr">▾</button>
+    </div>`;
+  abar.innerHTML = btns;
+}
+
+function renderOrderBody(o) {
+  const ship = DB.shipments.find(s=>s.orderNo===o.no);
+  let banner = '';
+  if(o.status==='Open') {
+    banner = `<div class="next-banner">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="nb-text"><h4>Next Action: Release Order</h4><p>Release this order to make it available for warehouse fulfillment processing.</p></div>
+      <button class="nb-btn" onclick="releaseOrder('${o.no}')">Release Order →</button>
+    </div>`;
+  } else if(o.status==='Released' && !ship) {
+    banner = `<div class="next-banner">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+      <div class="nb-text"><h4>Next Action: Create Warehouse Shipment</h4><p>Order is released. Create a warehouse shipment to begin physical fulfillment.</p></div>
+      <button class="nb-btn" onclick="createShipment('${o.no}')">Create Shipment →</button>
+    </div>`;
+  } else if(ship) {
+    banner = `<div class="next-banner" style="background:linear-gradient(135deg,#065F46,#047857)">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg></div>
+      <div class="nb-text"><h4>Shipment Created: ${ship.no}</h4><p>Warehouse shipment exists. Continue fulfillment from the shipment.</p></div>
+      <button class="nb-btn" onclick="openShipment('${ship.no}')">Open ${ship.no} →</button>
+    </div>`;
+  }
+
+  document.getElementById('od-body').innerHTML = banner + `
+    <div class="sec-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>General</div>
+    <div class="form-grid3" style="margin-bottom:16px">
+      <div class="fg"><label class="fl">No.</label><input class="fi ro" value="${o.no}" disabled></div>
+      <div class="fg"><label class="fl">Client</label><input class="fi ro" value="${o.client}" disabled></div>
+      <div class="fg"><label class="fl">Customer No.</label><input class="fi ro" value="${o.custNo||'—'}" disabled></div>
+      <div class="fg"><label class="fl">Customer Name</label><input class="fi ro" value="${o.custName||'—'}" disabled></div>
+      <div class="fg"><label class="fl">Order Date</label><input class="fi ro" value="${o.date}" disabled></div>
+      <div class="fg"><label class="fl">Location</label><input class="fi ro" value="${o.loc}" disabled></div>
+      <div class="fg"><label class="fl">Status</label><div style="height:32px;display:flex;align-items:center">${badge(o.status)}</div></div>
+    </div>
+    <div class="sdiv"></div>
+    <div class="lines-hdr"><div class="lines-title">Lines (2)</div>
+      <div class="lines-search"><svg class="ls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Type in to Search..."></div>
+    </div>
+    <div class="lt-wrap">
+      <table class="lt">
+        <thead><tr><th>Line No.</th><th>Item No.</th><th>Variant Code</th><th>UOM</th><th>Description</th><th>Quantity</th><th>Qty to Ship</th><th>Qty Shipped</th></tr></thead>
+        <tbody>
+          <tr><td>100</td><td class="tl">ITM116</td><td>TEST</td><td>PCS</td><td>1 GB PC800 ECC</td><td>2.00</td><td>2.00</td><td>0.00</td></tr>
+          <tr><td>200</td><td class="tl">ITM117</td><td></td><td>EA</td><td>2 GB DDR4 RAM</td><td>1.00</td><td>1.00</td><td>0.00</td></tr>
+        </tbody>
+      </table>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ORDER ACTIONS
+// ═══════════════════════════════════════════════════════
+function releaseOrder(no) {
+  const o = DB.orders.find(x=>x.no===no); if(!o) return;
+  o.status = 'Released'; o.step = 2;
+  toast('ok','Order Released',`${no} is now released for warehouse processing.`);
+  setTimeout(()=>{ o.step=3; renderOrderActionBar(o); renderOrderBody(o); miniStepper('od-stepper',o.step); renderOrders(); },600);
+}
+
+function createShipment(orderNo) {
+  const o = DB.orders.find(x=>x.no===orderNo); if(!o) return;
+  DB.counters.ship++;
+  const sno = 'WSHIP'+DB.counters.ship;
+  const ship = { no:sno, orderNo, loc:o.loc, pickStatus:'Pending', status:'Open', step:4, zone:'', bin:'' };
+  DB.shipments.unshift(ship);
+  o.step = 3;
+  renderOrders(); renderShipments();
+  toast('ok','Shipment Created',`${sno} created from order ${orderNo}.`);
+  setTimeout(()=>openShipment(sno), 700);
+}
+
+// ═══════════════════════════════════════════════════════
+//  OPEN SHIPMENT DETAIL
+// ═══════════════════════════════════════════════════════
+function openShipment(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  SEL.ship = no;
+  document.getElementById('sd-no-display').textContent = no;
+  miniStepper('sd-stepper', s.step);
+  renderShipmentActionBar(s);
+  renderShipmentBody(s);
+  go('ob-shipment-detail');
+}
+
+function renderShipmentActionBar(s) {
+  const abar = document.getElementById('sd-abar');
+  let btns = `
+    <button class="btn btn-g btn-sm" onclick="go('ob-shipments')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <div class="abar-sep"></div>
+    <button class="btn btn-g btn-sm">Actions ▾</button>
+    <button class="btn btn-g btn-sm">Adjust</button>
+    <button class="btn btn-g btn-sm">Prepare ▾</button>
+    <button class="btn btn-g btn-sm">Manage ▾</button>
+    <button class="btn btn-g btn-sm">Related ▾</button>
+  `;
+  if(s.step === 4 && (!s.zone || !s.bin)) {
+    btns += `<button class="btn btn-warn btn-sm" onclick="enableZoneBinEdit('${s.no}')" style="background:var(--warn);color:#fff">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>
+      Edit Zone / Bin
+    </button>`;
+  }
+  if(s.step >= 4 && s.zone && s.status === 'Open') {
+    btns += `<button class="btn btn-ok btn-sm" onclick="releaseShipment('${s.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Release Shipment
+    </button>`;
+  }
+  if(s.status === 'Released' && s.step >= 5 && s.step < 6) {
+    btns += `<button class="btn btn-p btn-sm" onclick="createPick('${s.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Create Warehouse Pick
+    </button>`;
+  }
+  if(s.step >= 6) {
+    const pick = DB.picks.find(p=>p.shipNo===s.no);
+    if(pick) btns += `<button class="btn btn-g btn-sm" onclick="openPick('${pick.no}')">View ${pick.no} →</button>`;
+  }
+  if(s.step === 9 && s.pickStatus === 'Completely Picked') {
+    btns += `<button class="btn btn-ok btn-sm" onclick="postShipment('${s.no}')" style="background:linear-gradient(135deg,#10B981,#059669)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Post Shipment
+    </button>`;
+  }
+  btns += `<div class="abar-sep" style="margin-left:auto"></div>
+    <button class="btn btn-err btn-sm">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>Delete
+    </button>
+    <div class="btn-dd">
+      <button class="btn btn-p btn-sm main-part">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+      </button>
+      <button class="btn btn-p btn-sm arr">▾</button>
+    </div>`;
+  abar.innerHTML = btns;
+}
+
+function renderShipmentBody(s) {
+  const pick = DB.picks.find(p=>p.shipNo===s.no);
+  let banner = '';
+  if(s.step === 4 && !s.zone) {
+    banner = `<div class="next-banner">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div class="nb-text"><h4>Next: Set Warehouse Zone & Bin</h4><p>Assign Zone Code and Bin Code to the shipment lines before releasing.</p></div>
+      <button class="nb-btn" onclick="enableZoneBinEdit('${s.no}')">Edit Zone / Bin →</button>
+    </div>`;
+  } else if(s.status === 'Open' && s.zone) {
+    banner = `<div class="next-banner">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="nb-text"><h4>Next: Release Warehouse Shipment</h4><p>Zone and bin are set. Release the shipment to enable pick creation.</p></div>
+      <button class="nb-btn" onclick="releaseShipment('${s.no}')">Release Shipment →</button>
+    </div>`;
+  } else if(s.status === 'Released' && s.step < 6) {
+    banner = `<div class="next-banner">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+      <div class="nb-text"><h4>Next: Create Warehouse Pick</h4><p>Shipment is released. Create a pick to begin physical warehouse picking.</p></div>
+      <button class="nb-btn" onclick="createPick('${s.no}')">Create Warehouse Pick →</button>
+    </div>`;
+  } else if(pick && s.pickStatus !== 'Completely Picked') {
+    banner = `<div class="next-banner" style="background:linear-gradient(135deg,#1E40AF,#3B82F6)">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div class="nb-text"><h4>Pick ${pick.no} In Progress</h4><p>Continue pick process: edit quantities and register the pick.</p></div>
+      <button class="nb-btn" onclick="openPick('${pick.no}')">Open Pick ${pick.no} →</button>
+    </div>`;
+  } else if(s.pickStatus === 'Completely Picked' && s.step === 9) {
+    banner = `<div class="next-banner" style="background:linear-gradient(135deg,#065F46,#059669)">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="nb-text"><h4>Next: Edit Qty to Ship & Post</h4><p>Picking complete. Set final quantities to ship and post the shipment.</p></div>
+      <button class="nb-btn" onclick="enableShipQtyEdit('${s.no}')">Edit Qty & Post →</button>
+    </div>`;
+  }
+
+  const isZoneEdit = s._editZone;
+  const isShipQtyEdit = s._editShipQty;
+  const lineZone = s.zone||''; const lineBin = s.bin||'';
+
+  document.getElementById('sd-body').innerHTML = banner + `
+    <div class="sec-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>General</div>
+    <div class="ic-row">
+      <div class="ic"><div class="ic-l">No.</div><div class="ic-v">${s.no}</div></div>
+      <div class="ic"><div class="ic-l">Location</div><div class="ic-v">${s.loc}</div></div>
+      <div class="ic"><div class="ic-l">Zone Code</div><div class="ic-v">${s.zone || '<span style="color:var(--tm);font-size:12px;font-family:inherit">Not set</span>'}</div></div>
+      <div class="ic"><div class="ic-l">Bin Code</div><div class="ic-v">${s.bin || '<span style="color:var(--tm);font-size:12px;font-family:inherit">Not set</span>'}</div></div>
+    </div>
+    <div class="form-grid4" style="margin-bottom:14px">
+      <div class="fg"><label class="fl">Document Date</label><input class="fi ro" value="05/18/2026" disabled></div>
+      <div class="fg"><label class="fl">Posting Date</label><input class="fi ro" value="05/18/2026" disabled></div>
+      <div class="fg"><label class="fl">Pick Status</label><div style="height:32px;display:flex;align-items:center">${badge(s.pickStatus)}</div></div>
+      <div class="fg"><label class="fl">Status</label><div style="height:32px;display:flex;align-items:center">${badge(s.status)}</div></div>
+      <div class="fg"><label class="fl">Source Order</label><a class="tl" style="line-height:32px" onclick="openOrder('${s.orderNo}')">${s.orderNo}</a></div>
+      <div class="fg"><label class="fl">Assigned User</label><input class="fi ro" value="—" disabled></div>
+    </div>
+
+    ${isZoneEdit ? `
+    <div class="alert alert-info"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div class="alert-text">Set the <strong>Zone Code</strong> and <strong>Bin Code</strong> below, then click <strong>Save Zone &amp; Bin</strong>.</div>
+    </div>
+    <div class="form-grid2" style="margin-bottom:14px">
+      <div class="fg"><label class="fl req">Zone Code</label><select class="fs" id="ze-zone"><option value="">Select zone...</option><option ${lineZone==='SHIP'?'selected':''}>SHIP</option><option ${lineZone==='PICK'?'selected':''}>PICK</option><option>BULK</option><option>RECEIVE</option></select></div>
+      <div class="fg"><label class="fl req">Bin Code</label><select class="fs" id="ze-bin"><option value="">Select bin...</option><option ${lineBin==='SHIP'?'selected':''}>SHIP</option><option>SHIP-A</option><option>PICK-01</option><option>PICK-02</option></select></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-p" onclick="saveZoneBin('${s.no}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>Save Zone &amp; Bin
+      </button>
+      <button class="btn btn-g" style="margin-left:8px" onclick="cancelZoneEdit('${s.no}')">Cancel</button>
+    </div>
+    ` : ''}
+
+    <div class="sdiv"></div>
+    <div class="lines-hdr"><div class="lines-title">Lines (${pick?'1 linked pick':'no picks yet'})</div>
+      <div class="lines-search"><svg class="ls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Type in to Search..."></div>
+    </div>
+    <div class="lt-wrap">
+      <table class="lt">
+        <thead><tr><th>Line No.</th><th>Source Doc</th><th>Source No.</th><th>Item No.</th><th>Description</th><th>UOM</th><th>Zone</th><th>Bin</th><th>Qty</th><th>Qty to Ship ${isShipQtyEdit?'✎':''}</th><th>Qty Shipped</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>100</td><td>Outbound Order</td><td><a class="tl" onclick="openOrder('${s.orderNo}')">${s.orderNo}</a></td>
+            <td class="tl">ITM116</td><td>1 GB PC800 ECC</td><td>PCS</td>
+            <td>${s.zone||'—'}</td><td>${s.bin||'—'}</td>
+            <td>1.00</td>
+            <td>${isShipQtyEdit ? `<input class="ei" id="sqty-100" value="1" type="number" min="0">` : '1.00'}</td>
+            <td>0.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    ${isShipQtyEdit ? `<div style="margin-top:12px">
+      <button class="btn btn-ok" onclick="postShipment('${s.no}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Post Shipment
+      </button>
+      <button class="btn btn-g" style="margin-left:8px" onclick="cancelShipQtyEdit('${s.no}')">Cancel</button>
+    </div>` : ''}
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SHIPMENT ACTIONS
+// ═══════════════════════════════════════════════════════
+function enableZoneBinEdit(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  s._editZone = true; renderShipmentBody(s); renderShipmentActionBar(s);
+}
+function cancelZoneEdit(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  s._editZone = false; renderShipmentBody(s); renderShipmentActionBar(s);
+}
+function saveZoneBin(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  const z = document.getElementById('ze-zone')?.value;
+  const b = document.getElementById('ze-bin')?.value;
+  if(!z||!b) { toast('err','Required','Please select both Zone and Bin.'); return; }
+  s.zone=z; s.bin=b; s._editZone=false; s.step=5;
+  toast('ok','Zone & Bin Saved',`Zone: ${z} / Bin: ${b}`);
+  renderShipmentBody(s); renderShipmentActionBar(s); miniStepper('sd-stepper',s.step);
+}
+
+function releaseShipment(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  s.status = 'Released'; s.step = 5;
+  toast('ok','Shipment Released',`${no} released. Ready for pick creation.`);
+  setTimeout(()=>{ renderShipmentBody(s); renderShipmentActionBar(s); miniStepper('sd-stepper',s.step); renderShipments(); },600);
+}
+
+function createPick(shipNo) {
+  const s = DB.shipments.find(x=>x.no===shipNo); if(!s) return;
+  DB.counters.pick++;
+  const pno = 'WPI'+DB.counters.pick;
+  const o = DB.orders.find(x=>x.no===s.orderNo);
+  DB.picks.unshift({ no:pno, shipNo, orderNo:s.orderNo, loc:s.loc, step:7 });
+  s.step = 6; o.step = 6;
+  renderPicks(); renderShipments();
+  toast('ok','Pick Created',`${pno} created from shipment ${shipNo}.`);
+  setTimeout(()=>openPick(pno), 700);
+}
+
+function enableShipQtyEdit(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  s._editShipQty = true; renderShipmentBody(s); renderShipmentActionBar(s);
+}
+function cancelShipQtyEdit(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  s._editShipQty = false; renderShipmentBody(s); renderShipmentActionBar(s);
+}
+
+function postShipment(no) {
+  const s = DB.shipments.find(x=>x.no===no); if(!s) return;
+  const o = DB.orders.find(x=>x.no===s.orderNo);
+  // Remove from active, add to posted
+  const idx = DB.shipments.indexOf(s);
+  DB.shipments.splice(idx,1);
+  DB.posted.unshift({ no:s.no, orderNo:s.orderNo, client:o?.client||'—', date:'05/18/2026', loc:s.loc });
+  if(o) { o.status='Released'; o.step=9; }
+  renderOrders(); renderShipments(); renderPosted();
+  toast('ok','Shipment Posted! 🎉',`${no} posted successfully. Fulfillment complete.`);
+  setTimeout(()=>{
+    document.getElementById('sd-body').innerHTML = `
+      <div class="complete-wrap">
+        <div class="complete-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="30" height="30"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <h2>Shipment Posted! 🎉</h2>
+        <p>Outbound fulfillment is complete. Inventory has been updated.</p>
+        <div class="cs">
+          <div class="cs-item"><div class="cl">Source Order</div><div class="cv">${s.orderNo}</div></div>
+          <div class="cs-item"><div class="cl">Shipment</div><div class="cv">${s.no}</div></div>
+          <div class="cs-item"><div class="cl">Status</div><div class="cv" style="color:var(--ok)">Posted</div></div>
+        </div>
+        <div style="display:flex;gap:9px;justify-content:center">
+          <button class="btn btn-g" onclick="go('ob-orders')">← Back to Orders</button>
+          <button class="btn btn-p" onclick="go('ob-posted')">View Posted</button>
+          <button class="btn btn-g" onclick="go('ob-shipments')">All Shipments</button>
+        </div>
+      </div>`;
+    document.getElementById('sd-abar').innerHTML = `<button class="btn btn-g btn-sm" onclick="go('ob-shipments')">← Back to Shipments</button>`;
+    document.getElementById('sd-stepper').querySelectorAll('.ms-step').forEach(el=>{el.classList.add('done');el.classList.remove('cur')});
+  }, 900);
+}
+
+// ═══════════════════════════════════════════════════════
+//  OPEN PICK DETAIL
+// ═══════════════════════════════════════════════════════
+function openPick(no) {
+  const p = DB.picks.find(x=>x.no===no); if(!p) return;
+  SEL.pick = no;
+  document.getElementById('pd-no-display').textContent = no;
+  miniStepper('pd-stepper', p.step);
+  renderPickActionBar(p);
+  renderPickBody(p);
+  go('ob-pick-detail');
+}
+
+function renderPickActionBar(p) {
+  const abar = document.getElementById('pd-abar');
+  let btns = `
+    <button class="btn btn-g btn-sm" onclick="go('ob-picks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="15 18 9 12 15 6"/></svg>Back
+    </button>
+    <div class="abar-sep"></div>
+    <button class="btn btn-g btn-sm">Actions ▾</button>
+    <button class="btn btn-g btn-sm">Related ▾</button>
+  `;
+  if(p.step === 7) {
+    btns += `<button class="btn btn-p btn-sm" onclick="enablePickQtyEdit('${p.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Edit Picked Qty
+    </button>`;
+  }
+  if(p.step === 8) {
+    btns += `<button class="btn btn-ok btn-sm" onclick="registerPick('${p.no}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Register Pick
+    </button>`;
+  }
+  btns += `<div class="abar-sep" style="margin-left:auto"></div>
+    <div class="btn-dd">
+      <button class="btn btn-p btn-sm main-part">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/></svg>Edit
+      </button>
+      <button class="btn btn-p btn-sm arr">▾</button>
+    </div>`;
+  abar.innerHTML = btns;
+}
+
+function renderPickBody(p) {
+  const s = DB.shipments.find(x=>x.no===p.shipNo);
+  const isEdit = p._editQty;
+  let banner = '';
+  if(p.step === 7) {
+    banner = `<div class="next-banner" style="background:linear-gradient(135deg,#1E40AF,#3B82F6)">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></div>
+      <div class="nb-text"><h4>Next: Enter Picked Quantities</h4><p>Go to the warehouse, physically pick items, then enter the actual quantities below.</p></div>
+      <button class="nb-btn" onclick="enablePickQtyEdit('${p.no}')">Edit Pick Qty →</button>
+    </div>`;
+  } else if(p.step === 8) {
+    banner = `<div class="next-banner" style="background:linear-gradient(135deg,#064E3B,#065F46)">
+      <div class="nb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/></svg></div>
+      <div class="nb-text"><h4>Next: Register Warehouse Pick</h4><p>Quantities are confirmed. Register the pick to mark items as picked in inventory.</p></div>
+      <button class="nb-btn" onclick="registerPick('${p.no}')">Register Pick →</button>
+    </div>`;
+  }
+
+  document.getElementById('pd-body').innerHTML = banner + `
+    <div class="sec-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>General</div>
+    <div class="form-grid4" style="margin-bottom:14px">
+      <div class="fg"><label class="fl">No.</label><input class="fi ro" value="${p.no}" disabled></div>
+      <div class="fg"><label class="fl">Location</label><input class="fi ro" value="${p.loc}" disabled></div>
+      <div class="fg"><label class="fl">Source Shipment</label><a class="tl" style="line-height:32px" onclick="openShipment('${p.shipNo}')">${p.shipNo}</a></div>
+      <div class="fg"><label class="fl">Source Order</label><a class="tl" style="line-height:32px" onclick="openOrder('${p.orderNo}')">${p.orderNo}</a></div>
+      <div class="fg"><label class="fl">Zone Code</label><input class="fi ro" value="${s?.zone||'SHIP'}" disabled></div>
+      <div class="fg"><label class="fl">Bin Code</label><input class="fi ro" value="${s?.bin||'SHIP'}" disabled></div>
+      <div class="fg"><label class="fl">Assigned User</label><input class="fi ro" value="—" disabled></div>
+    </div>
+    <div class="sdiv"></div>
+    <div class="lines-hdr"><div class="lines-title">Pick Lines</div>
+      <div class="lines-search"><svg class="ls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Type in to Search..."></div>
+    </div>
+    ${isEdit ? `<div class="alert alert-info" style="margin-bottom:10px"><svg viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div class="alert-text">Enter the <strong>actual quantities picked</strong> from the warehouse locations below.</div></div>` : ''}
+    <div class="lt-wrap">
+      <table class="lt">
+        <thead><tr><th>Line No.</th><th>Action</th><th>Item No.</th><th>Description</th><th>UOM</th><th>From Zone</th><th>From Bin</th><th>To Zone</th><th>To Bin</th><th>Qty</th><th>${isEdit?'Qty Picked ✎':'Qty Picked'}</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>100</td><td><span class="tag">Take</span></td><td class="tl">ITM116</td>
+            <td>1 GB PC800 ECC</td><td>PCS</td><td>PICK</td><td>PICK-01</td>
+            <td>${s?.zone||'SHIP'}</td><td>${s?.bin||'SHIP'}</td>
+            <td>1.00</td>
+            <td>${isEdit ? `<input class="ei" id="pqty-100" value="${p._pickedQty||1}" type="number" min="0">` : `<span style="color:var(--ok);font-weight:600">${p._pickedQty||'—'}</span>`}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    ${isEdit ? `<div style="margin-top:12px">
+      <button class="btn btn-p" onclick="savePickQty('${p.no}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>Save Quantities
+      </button>
+      <button class="btn btn-g" style="margin-left:8px" onclick="cancelPickQtyEdit('${p.no}')">Cancel</button>
+    </div>` : ''}
+  `;
+}
+
+function enablePickQtyEdit(no) {
+  const p = DB.picks.find(x=>x.no===no); if(!p) return;
+  p._editQty = true; renderPickBody(p); renderPickActionBar(p);
+}
+function cancelPickQtyEdit(no) {
+  const p = DB.picks.find(x=>x.no===no); if(!p) return;
+  p._editQty = false; renderPickBody(p); renderPickActionBar(p);
+}
+function savePickQty(no) {
+  const p = DB.picks.find(x=>x.no===no); if(!p) return;
+  const v = parseFloat(document.getElementById('pqty-100')?.value)||0;
+  p._pickedQty = v; p._editQty = false; p.step = 8;
+  toast('ok','Quantities Saved',`Picked qty: ${v} PCS`);
+  renderPickBody(p); renderPickActionBar(p); miniStepper('pd-stepper',p.step);
+}
+function registerPick(no) {
+  const p = DB.picks.find(x=>x.no===no); if(!p) return;
+  const s = DB.shipments.find(x=>x.no===p.shipNo);
+  if(s) { s.pickStatus = 'Completely Picked'; s.step = 9; }
+  const o = DB.orders.find(x=>x.no===p.orderNo);
+  if(o) o.step = 9;
+  p.step = 9;
+  toast('ok','Pick Registered',`${no} registered. Items marked as picked.`);
+  setTimeout(()=>{
+    renderPicks(); renderShipments(); renderOrders();
+    document.getElementById('pd-body').innerHTML = `
+      <div class="complete-wrap">
+        <div class="complete-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" width="30" height="30"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <h2>Pick Registered ✓</h2>
+        <p>Items are marked as picked. Go to the warehouse shipment to set final quantities and post.</p>
+        <div class="cs">
+          <div class="cs-item"><div class="cl">Pick</div><div class="cv">${no}</div></div>
+          <div class="cs-item"><div class="cl">Shipment</div><div class="cv">${p.shipNo}</div></div>
+          <div class="cs-item"><div class="cl">Pick Status</div><div class="cv" style="color:var(--p)">Completely Picked</div></div>
+        </div>
+        <div style="display:flex;gap:9px;justify-content:center">
+          <button class="btn btn-g" onclick="go('ob-picks')">← Back to Picks</button>
+          <button class="btn btn-p" onclick="openShipment('${p.shipNo}')">Continue: Open ${p.shipNo} →</button>
+        </div>
+      </div>`;
+    document.getElementById('pd-abar').innerHTML = `<button class="btn btn-g btn-sm" onclick="go('ob-picks')">← Back to Picks</button><div class="abar-sep"></div><button class="btn btn-p btn-sm" onclick="openShipment('${p.shipNo}')">Open Shipment ${p.shipNo} →</button>`;
+    document.getElementById('pd-stepper').querySelectorAll('.ms-step').forEach((el,i)=>{if(i<8){el.classList.add('done');el.classList.remove('cur')}});
+  }, 700);
+}
+
+// ═══════════════════════════════════════════════════════
+//  NEW ORDER FORM
+// ═══════════════════════════════════════════════════════
+let nfLines = []; let nfLineNo = 100;
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('btn-nf-addline').onclick = ()=>{
+    nfLines.push({no:nfLineNo,item:'',var:'',uom:'PCS',desc:'',qty:1});
+    const b = document.getElementById('nf-lines-body');
+    b.innerHTML = nfLines.map((l,i)=>`
+      <tr>
+        <td>${l.no}</td>
+        <td><input class="ei" style="width:80px;text-align:left" placeholder="ITM..." onchange="nfLines[${i}].item=this.value"></td>
+        <td><input class="ei" style="width:60px;text-align:left" placeholder="CODE"></td>
+        <td><select class="ei" style="width:55px"><option>PCS</option><option>EA</option><option>KG</option></select></td>
+        <td><input class="ei" style="width:150px;text-align:left" placeholder="Description" onchange="nfLines[${i}].desc=this.value"></td>
+        <td><input class="ei" type="number" value="1" min="1" onchange="nfLines[${i}].qty=+this.value"></td>
+        <td><button onclick="nfLines.splice(${i},1);document.getElementById('btn-nf-addline').click();document.getElementById('btn-nf-addline').click()" style="background:none;border:none;cursor:pointer;color:var(--err)">✕</button></td>
+      </tr>`).join('');
+    nfLineNo += 100;
+  };
+  document.getElementById('btn-save-new-order').onclick = ()=>{
+    const client = document.getElementById('nf-client').value;
+    const loc = document.getElementById('nf-loc').value;
+    if(!client||!loc){toast('err','Required','Please select a Client and Location.');return;}
+    DB.counters.order++;
+    const no = 'PSO'+DB.counters.order;
+    DB.orders.unshift({no,client,custNo:document.getElementById('nf-custno').value,custName:document.getElementById('nf-custname').value,date:'05/18/2026',loc,status:'Open',step:1,lines:nfLines.length?nfLines:[{no:100,item:'ITM116',var:'TEST',uom:'PCS',desc:'1 GB PC800 ECC',qty:1}]});
+    nfLines=[]; nfLineNo=100;
+    renderOrders();
+    toast('ok','Order Created',`${no} created successfully.`);
+    setTimeout(()=>openOrder(no),700);
+  };
+});
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function toast(type, title, msg) {
+  const c = document.getElementById('tw');
+  const cols = {ok:'#10B981',err:'#EF4444',warn:'#F59E0B',info:'#7C3AED'};
+  const icons = {
+    ok:`<svg viewBox="0 0 24 24" fill="none" stroke="${cols.ok}" stroke-width="2.5" width="16" height="16"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+    err:`<svg viewBox="0 0 24 24" fill="none" stroke="${cols.err}" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    warn:`<svg viewBox="0 0 24 24" fill="none" stroke="${cols.warn}" stroke-width="2.5" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`,
+    info:`<svg viewBox="0 0 24 24" fill="none" stroke="${cols.info}" stroke-width="2.5" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+  };
+  const el = document.createElement('div');
+  el.className = `toast${type==='err'?' err':type==='warn'?' warn':''}`;
+  el.style.borderLeftColor = cols[type]||cols.ok;
+  el.innerHTML = `<div>${icons[type]||icons.ok}</div><div><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+  c.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(100%)';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},3500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+renderOrders(); renderShipments(); renderPicks(); renderPosted();
+go('ob-orders');
+</script>
+</body>
+</html>
